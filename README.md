@@ -6,9 +6,9 @@ Have a look at the app here: https://hmlinh.shinyapps.io/Ecommerce_Products/
 ## Dataset variables
 •	**model**: character, product's unique identifier.
 
-•	**category**: factor, category that the product belongs to, there are 23 categories.
+•	**category**: factor, category that the product belongs to.
 
-•	**brand**: factor, name of the brand of the product, there are 25 identified brands.
+•	**brand**: factor, name of the brand of the product.
 
 •	**short_desc**: character, short description about the product.
 
