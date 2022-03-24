@@ -1,6 +1,5 @@
 # Import the library and load the dataset
 library(tidyverse)      
-setwd("~/Desktop/02_emlyon/semester_2/R/Assignment/assignment_2_HML")
 shoes <- read_csv("shoes_original.csv")
 shoes <- as_tibble(shoes)
 
