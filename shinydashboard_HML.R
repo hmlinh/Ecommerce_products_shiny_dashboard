@@ -411,7 +411,8 @@ ui <- dashboardPage(
                            of a category. Thanks to these lists of words, we can see which term is used to describe the most 
                            liked products. This may be helpful for company to decide which products 
                            to focus on selling on their website and also for their marketing team 
-                           to know how to write more attracting description for shoes.", icon("grin-wink"))
+                           to know how to write more attracting description for shoes.", icon("grin-wink"), 
+                            align ="justify")
                 ) #End of Text Mining
               )
       ), # End of Analysis Tab
