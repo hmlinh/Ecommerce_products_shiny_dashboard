@@ -323,22 +323,96 @@ ui <- dashboardPage(
                          )
                 ), # End of Correlation
                 
-                tabPanel("Text Mining",                        
+                tabPanel("Text Mining",
                          h3("We had enough of numbers and figures already, let's 
                            have a little bit more fun with words!"),
                          
-                         plotOutput("text", height = 540),
-                         h4("The barplot below shows word frequency in", em("short description"), 
+                         selectInput("text_plots", label = h4("Select category"), 
+                                     choices = list('Derbies & Mocassins' = "derbies", 
+                                                    'Baskets' = "baskets",
+                                                    'Bottes & Bottines' = "bottes",
+                                                    'Sandales & Mules' = "sandales",
+                                                    'Chaussons' =  "chaussons",
+                                                    'Escarpins' = "escarpins",
+                                                    'Chaussures de ville' = "ville",
+                                                    'Accessoires chaussures' = "accessoire",
+                                                    'Plateforme' = "plateforme",
+                                                    'Chaussures de sport' = 'sport'), 
+                                     selected = "bottes"),
+                         
+                         # Create panel for each category to be visible or not based on the selection of the selectbox
+                         # Derbies & Mocassins
+                         conditionalPanel(
+                           condition = "input.text_plots == 'derbies'", 
+                           plotOutput("derbies_plot", height = 460)
+                         ),
+                         
+                         # Baskets
+                         conditionalPanel(
+                           condition = "input.text_plots == 'baskets'", 
+                           plotOutput("baskets_plot", height = 460)
+                         ),
+                         
+                         # Bottes & Bottines
+                         conditionalPanel(
+                           condition = "input.text_plots == 'bottes'", 
+                           plotOutput("bottes_plot", height = 460)
+                         ),
+                         
+                         # Sandales & Mules
+                         conditionalPanel(
+                           condition = "input.text_plots == 'sandales'", 
+                           plotOutput("sandales_plot", height = 460)
+                         ),
+                         
+                         # Chaussons
+                         conditionalPanel(
+                           condition = "input.text_plots == 'chaussons'",
+                           plotOutput("chaussons_plot", height = 460)
+                         ),
+                         
+                         # Escarpins
+                         conditionalPanel(
+                           condition = "input.text_plots == 'escarpins'", 
+                           plotOutput("escarpins_plot", height = 460)
+                         ),
+                         
+                         # Chaussures de ville
+                         conditionalPanel(
+                           condition = "input.text_plots == 'ville'", 
+                           plotOutput("ville_plot", height = 460)
+                         ),
+                         
+                         # Accessoires chaussures
+                         conditionalPanel(
+                           condition = "input.text_plots == 'accessoire'", 
+                           plotOutput("accessoire_plot", height = 460)
+                         ),
+                         
+                         # Plateforme
+                         conditionalPanel(
+                           condition = "input.text_plots == 'plateforme'", 
+                           plotOutput("plateforme_plot", height = 460)
+                         ),
+                         
+                         # Chaussures de sport
+                         conditionalPanel(
+                           condition = "input.text_plots == 'sport'", 
+                           plotOutput("sport_plot", height = 460) 
+                         ),
+                         
+                         h4("The lollipop plot above shows word frequency in", em("short description"), 
                             "feature for products that have more than 100 likes. Appeared 
-                           on the y axis the top 30 words that are the most commonly used to 
-                           describe shoe products on the website. Thanks to this list, we 
-                           can see what kinds of shoes that have the most likes, for 
-                           example leather (cuir) shoes, sandals (sandales), boots (bottes), 
-                           flat (plates) shoes or shoes for men (hommes), etc. This may be 
-                           helpful for company to decide which products to focus on 
-                           selling on their website and also for company's marketing team to know how 
-                           to write more attracting description for shoes.", icon("grin-wink"))
-                ) # End of Text Mining
+                           on the y axis the words that are the most commonly used to 
+                           describe shoe products of each category on the website.",
+                           tags$a(href="https://www.tidytextmining.com/tfidf.html", "tf-idf", target="_blank"),
+                           "on x axis which means", em("term frequency – inverse document frequency"), 
+                           "is a measure used to evaluate how important a word is in a collection of shoe description
+                           of a category. Thanks to these lists of words, we can see which term is used to describe the most 
+                           liked products. This may be helpful for company to decide which products 
+                           to focus on selling on their website and also for their marketing team 
+                           to know how to write more attracting description for shoes.", icon("grin-wink"))
+                ) #End of Text Mining
               )
       ), # End of Analysis Tab
       
@@ -874,34 +948,197 @@ server <- function(input, output){
            y = "Likes")
   })
   
-  # Render plot in Text Mining
-  toplike <- reactive({ 
+  # Render plots in Text Mining
+  bind_tf_idf_toplike <- reactive({ 
     dat2 <- data() %>% 
-      filter(likes>100)
+      filter(likes>100) %>% 
+      unnest_tokens(word, short_desc) %>% 
+      group_by(category, word) %>% 
+      count(word) %>%
+      bind_tf_idf(word, category, n) %>% 
+      group_by(category)
   }) 
   
-  output$text<- renderPlot({
-    rus_stopwords = data.frame(word = stopwords("fr"))
-    toplike() %>% 
-      unnest_tokens(word, short_desc) %>% 
-      anti_join(rus_stopwords) %>%            # anti_join to remove stopwords
-      count(word) %>% 
-      arrange(desc(n)) %>% 
-      head(30) %>% 
-      mutate(word = fct_reorder(word, n)) %>%
-      ggplot(aes(x = word, y = n)) +  
-      geom_segment( aes(xend=word, yend=0), color="#3a435e") +
-      geom_point( size=2.5, color="#F67280", 
-                  fill=alpha("orange", 0.3),
-                  alpha=0.7, shape=21, stroke=3) +
+  # Derbies & Mocassins 
+  output$derbies_plot<- renderPlot({
+    bind_tf_idf_toplike() %>% 
+      filter(category=="Derbies & Mocassins") %>%
+      slice_max(tf_idf, n = 20) %>% 
+      ggplot(aes(y=tf_idf, x=fct_reorder(word, tf_idf))) +
+      geom_segment(aes(xend=fct_reorder(word, tf_idf), yend=0), color="#3a435e") +
+      geom_point(size=2.5, color="#F67280", 
+                 fill=alpha("orange", 0.3),
+                 alpha=0.7, shape=21, stroke=3) +
       coord_flip() +
       theme_minimal() +
-      labs(title = "Word frequency of the most liked products",
-           x = "",
-           y = "count") +
-      theme(plot.title = element_text(face = "bold", size = 14),   
-            axis.text.y = element_text(size = 14))
+      theme(axis.text.y = element_text(size = 14),
+            axis.title = element_text(size = 14)) +
+      labs(x = "",
+           y = "tf_idf") 
   })
+  
+  # Baskets
+  output$baskets_plot<- renderPlot({
+    bind_tf_idf_toplike() %>% 
+      filter(category=="Baskets") %>%
+      slice_max(tf_idf, n = 20) %>% 
+      ggplot(aes(y=tf_idf, x=fct_reorder(word, tf_idf))) +
+      geom_segment(aes(xend=fct_reorder(word, tf_idf), yend=0), color="#3a435e") +
+      geom_point(size=2.5, color="#F67280", 
+                 fill=alpha("orange", 0.3),
+                 alpha=0.7, shape=21, stroke=3) +
+      coord_flip() +
+      theme_minimal() +
+      theme(axis.text.y = element_text(size = 14),
+            axis.title = element_text(size = 14)) +
+      labs(x = "",
+           y = "tf_idf") 
+  })
+  
+  # Bottes & Bottines
+  output$bottes_plot<- renderPlot({
+    bind_tf_idf_toplike() %>% 
+      filter(category=="Bottes & Bottines") %>%
+      slice_max(tf_idf, n = 20) %>% 
+      ggplot(aes(y=tf_idf, x=fct_reorder(word, tf_idf))) +
+      geom_segment(aes(xend=fct_reorder(word, tf_idf), yend=0), color="#3a435e") +
+      geom_point(size=2.5, color="#F67280", 
+                 fill=alpha("orange", 0.3),
+                 alpha=0.7, shape=21, stroke=3) +
+      coord_flip() +
+      theme_minimal() +
+      theme(axis.text.y = element_text(size = 14),
+            axis.title = element_text(size = 14)) +
+      labs(x = "",
+           y = "tf_idf") 
+  })
+  
+  # Sandales & Mules 
+  output$sandales_plot<- renderPlot({
+    bind_tf_idf_toplike() %>% 
+      filter(category=="Sandales & Mules") %>%
+      slice_max(tf_idf, n = 20) %>% 
+      ggplot(aes(y=tf_idf, x=fct_reorder(word, tf_idf))) +
+      geom_segment(aes(xend=fct_reorder(word, tf_idf), yend=0), color="#3a435e") +
+      geom_point(size=2.5, color="#F67280", 
+                 fill=alpha("orange", 0.3),
+                 alpha=0.7, shape=21, stroke=3) +
+      coord_flip() +
+      theme_minimal() +
+      theme(axis.text.y = element_text(size = 14),
+            axis.title = element_text(size = 14)) +
+      labs(x = "",
+           y = "tf_idf") 
+  })
+  
+  # Chaussons 
+  output$chaussons_plot<- renderPlot({
+    bind_tf_idf_toplike() %>% 
+      filter(category=="Chaussons") %>%
+      slice_max(tf_idf, n = 20) %>% 
+      ggplot(aes(y=tf_idf, x=fct_reorder(word, tf_idf))) +
+      geom_segment(aes(xend=fct_reorder(word, tf_idf), yend=0), color="#3a435e") +
+      geom_point(size=2.5, color="#F67280", 
+                 fill=alpha("orange", 0.3),
+                 alpha=0.7, shape=21, stroke=3) +
+      coord_flip() +
+      theme_minimal() +
+      theme(axis.text.y = element_text(size = 14),
+            axis.title = element_text(size = 14)) +
+      labs(x = "",
+           y = "tf_idf") 
+  })
+  
+  # Escarpins
+  output$escarpins_plot<- renderPlot({
+    bind_tf_idf_toplike() %>% 
+      filter(category=="Escarpins") %>%
+      slice_max(tf_idf, n = 20) %>% 
+      ggplot(aes(y=tf_idf, x=fct_reorder(word, tf_idf))) +
+      geom_segment(aes(xend=fct_reorder(word, tf_idf), yend=0), color="#3a435e") +
+      geom_point(size=2.5, color="#F67280", 
+                 fill=alpha("orange", 0.3),
+                 alpha=0.7, shape=21, stroke=3) +
+      coord_flip() +
+      theme_minimal() +
+      theme(axis.text.y = element_text(size = 14),
+            axis.title = element_text(size = 14)) +
+      labs(x = "",
+           y = "tf_idf") 
+  })
+  
+  # Chaussures de ville 
+  output$ville_plot<- renderPlot({
+    bind_tf_idf_toplike() %>% 
+      filter(category=="Chaussures de ville") %>%
+      slice_max(tf_idf, n = 20) %>% 
+      ggplot(aes(y=tf_idf, x=fct_reorder(word, tf_idf))) +
+      geom_segment(aes(xend=fct_reorder(word, tf_idf), yend=0), color="#3a435e") +
+      geom_point(size=2.5, color="#F67280", 
+                 fill=alpha("orange", 0.3),
+                 alpha=0.7, shape=21, stroke=3) +
+      coord_flip() +
+      theme_minimal() +
+      theme(axis.text.y = element_text(size = 14),
+            axis.title = element_text(size = 14)) +
+      labs(x = "",
+           y = "tf_idf") 
+  })
+  
+  # Accessoires chaussures 
+  output$accessoire_plot<- renderPlot({
+    bind_tf_idf_toplike() %>% 
+      filter(category=="Accessoires chaussures") %>%
+      slice_max(tf_idf, n = 20) %>% 
+      ggplot(aes(y=tf_idf, x=fct_reorder(word, tf_idf))) +
+      geom_segment(aes(xend=fct_reorder(word, tf_idf), yend=0), color="#3a435e") +
+      geom_point(size=2.5, color="#F67280", 
+                 fill=alpha("orange", 0.3),
+                 alpha=0.7, shape=21, stroke=3) +
+      coord_flip() +
+      theme_minimal() +
+      theme(axis.text.y = element_text(size = 14),
+            axis.title = element_text(size = 14)) +
+      labs(x = "",
+           y = "tf_idf") 
+  })
+  
+  # Plateforme
+  output$plateforme_plot<- renderPlot({
+    bind_tf_idf_toplike() %>% 
+      filter(category=="Plateforme") %>%
+      slice_max(tf_idf, n = 20) %>% 
+      ggplot(aes(y=tf_idf, x=fct_reorder(word, tf_idf))) +
+      geom_segment(aes(xend=fct_reorder(word, tf_idf), yend=0), color="#3a435e") +
+      geom_point(size=2.5, color="#F67280", 
+                 fill=alpha("orange", 0.3),
+                 alpha=0.7, shape=21, stroke=3) +
+      coord_flip() +
+      theme_minimal() +
+      theme(axis.text.y = element_text(size = 14),
+            axis.title = element_text(size = 14)) +
+      labs(x = "",
+           y = "tf_idf") 
+  })
+  
+  # Chaussures de sport
+  output$sport_plot<- renderPlot({
+    bind_tf_idf_toplike() %>% 
+      filter(category=="Chaussures de sport") %>%
+      slice_max(tf_idf, n = 20) %>% 
+      ggplot(aes(y=tf_idf, x=fct_reorder(word, tf_idf))) +
+      geom_segment(aes(xend=fct_reorder(word, tf_idf), yend=0), color="#3a435e") +
+      geom_point(size=2.5, color="#F67280", 
+                 fill=alpha("orange", 0.3),
+                 alpha=0.7, shape=21, stroke=3) +
+      coord_flip() +
+      theme_minimal() +
+      theme(axis.text.y = element_text(size = 14),
+            axis.title = element_text(size = 14)) +
+      labs(x = "",
+           y = "tf_idf") 
+  })
+  
 }
 
 # Run the app ----
